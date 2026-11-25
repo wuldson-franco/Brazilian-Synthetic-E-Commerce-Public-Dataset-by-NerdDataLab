@@ -1,0 +1,1 @@
+# Brazilian-Sintetic-E-Commerce-Public-Dataset-by-NerdDataLab
