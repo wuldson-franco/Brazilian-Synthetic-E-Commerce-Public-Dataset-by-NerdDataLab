@@ -96,8 +96,11 @@ def black_friday(ano):
     return quinta1 + timedelta(days=22)  # sexta depois da 4a quinta de novembro
 
 
+FORMATO_DATA = "%Y-%m-%d %H:%M:%S"
+
+
 def fmt(serie_dt):
-    return pd.Series(serie_dt).dt.strftime("%Y-%m-%d %H:%M:%S")
+    return pd.Series(serie_dt).dt.strftime(FORMATO_DATA)
 
 
 def frequencias(serie):
@@ -364,9 +367,9 @@ def gerar(args):
     saida = args.saida
     for sub in ["dimensoes", "_gabarito"]:
         os.makedirs(os.path.join(saida, sub), exist_ok=True)
-    cat["pro"].to_csv(os.path.join(saida, "dimensoes", "olist_products_dataset.csv"), index=False)
-    cat["ven"].drop(columns=[]).to_csv(os.path.join(saida, "dimensoes", "olist_sellers_dataset.csv"), index=False)
-    A["traducao"].to_csv(os.path.join(saida, "dimensoes", "product_category_name_translation.csv"), index=False)
+    cat["pro"].to_csv(os.path.join(saida, "dimensoes", "olist_products_dataset.csv"), index=False, lineterminator="\n")
+    cat["ven"].drop(columns=[]).to_csv(os.path.join(saida, "dimensoes", "olist_sellers_dataset.csv"), index=False, lineterminator="\n")
+    A["traducao"].to_csv(os.path.join(saida, "dimensoes", "product_category_name_translation.csv"), index=False, lineterminator="\n")
 
     fim_ts = fim + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
     stream_ini = (fim - pd.Timedelta(days=args.stream_dias - 1)).normalize() if args.stream_dias > 0 else fim + pd.Timedelta(days=9)
@@ -593,15 +596,14 @@ def gerar(args):
         nomes = {"orders": "olist_orders_dataset", "customers": "olist_customers_dataset",
                  "order_items": "olist_order_items_dataset", "order_payments": "olist_order_payments_dataset",
                  "order_reviews": "olist_order_reviews_dataset"}
-        chave_dia = lambda df, col: pd.to_datetime(df[col]).dt.strftime("%Y-%m-%d")
-        data_pedido = pd.Series(pd.to_datetime(fmt(compra)).dt.normalize().values, index=order_id)
+        data_pedido = pd.Series(pd.to_datetime(fmt(compra), format=FORMATO_DATA).dt.normalize().values, index=order_id)
         for nome, df in tabs.items():
             if nome in carry and len(carry[nome]):
                 df = pd.concat([carry[nome], df], ignore_index=True)
             if nome == "customers":
                 d = data_pedido.reindex(df.customer_id.map(dict(zip(customer_id, order_id)))).values
             elif nome == "orders":
-                d = pd.to_datetime(df.order_purchase_timestamp).dt.normalize().values
+                d = pd.to_datetime(df.order_purchase_timestamp, format=FORMATO_DATA).dt.normalize().values
             else:
                 d = data_pedido.reindex(df.order_id).values
             d = pd.Series(pd.to_datetime(d), index=df.index)
@@ -610,11 +612,11 @@ def gerar(args):
             hist = df[~em_stream]
             if len(hist):
                 pasta = os.path.join(saida, "fatos", nome); os.makedirs(pasta, exist_ok=True)
-                hist.to_csv(os.path.join(pasta, f"{nomes[nome]}_{per}.csv"), index=False)
+                hist.to_csv(os.path.join(pasta, f"{nomes[nome]}_{per}.csv"), index=False, lineterminator="\n")
             if em_stream.any():
                 pasta = os.path.join(saida, "stream", nome); os.makedirs(pasta, exist_ok=True)
                 for dia, g in df[em_stream].groupby(d[em_stream].dt.strftime("%Y-%m-%d")):
-                    g.to_csv(os.path.join(pasta, f"{nomes[nome]}_{dia}.csv"), index=False)
+                    g.to_csv(os.path.join(pasta, f"{nomes[nome]}_{dia}.csv"), index=False, lineterminator="\n")
         carry = novo_carry
 
         resumo_meses.append({"mes": str(per), "pedidos": n, "itens": m,
@@ -626,9 +628,9 @@ def gerar(args):
 
     print("[4/4] Gabarito e resumo ...")
     pd.DataFrame({"seller_id": cat["ven"].seller_id.values, "vendedor_ruim": cat["ruim"]}).to_csv(
-        os.path.join(saida, "_gabarito", "vendedores_ruins.csv"), index=False)
+        os.path.join(saida, "_gabarito", "vendedores_ruins.csv"), index=False, lineterminator="\n")
     g = pd.DataFrame(gab, columns=["tipo_sujeira", "tabela", "chave", "particao"])
-    g.to_csv(os.path.join(saida, "_gabarito", "sujeira_injetada.csv"), index=False)
+    g.to_csv(os.path.join(saida, "_gabarito", "sujeira_injetada.csv"), index=False, lineterminator="\n")
     resumo = {"semente": args.semente, "pedidos": args.pedidos, "inicio": args.inicio, "fim": args.fim,
               "stream_dias": args.stream_dias, "sujeira": args.sujeira,
               "sujeira_por_tipo": g.tipo_sujeira.value_counts().to_dict(),
