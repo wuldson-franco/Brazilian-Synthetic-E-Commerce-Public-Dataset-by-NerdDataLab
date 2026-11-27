@@ -1,0 +1,4 @@
+# dados gerados (reproduzíveis com gerador/gerar_dados.py)
+__pycache__/
+.venv/
+*.pyc

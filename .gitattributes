@@ -1,0 +1,2 @@
+# Dados: nunca converter fim de linha (evita alterar o conteudo dos CSVs no Windows)
+*.csv -text
